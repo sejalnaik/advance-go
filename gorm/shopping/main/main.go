@@ -5,12 +5,12 @@ import (
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
-	"github.com/sejalnaik/advance-go/gorm/shopping/crud"
 	"github.com/sejalnaik/advance-go/gorm/shopping/customer"
 	"github.com/sejalnaik/advance-go/gorm/shopping/order"
 )
 
 func main() {
+
 	db, err := gorm.Open("mysql", "root:root@tcp(localhost:4040)/practice?charset=utf8&parseTime=True&loc=Local")
 	if err != nil {
 		fmt.Println(err)
@@ -20,60 +20,68 @@ func main() {
 	db.Model(&order.Order{}).AddForeignKey("customer_id", "customers(id)", "CASCADE", "RESTRICT")
 
 	//Add customer with orders
-	/*order1 := order.Order{Qunatity: 2, Cost: 100.00, CustomerID: 1}
+	/*uow := repository.UnitOfWork{DB: db, Committed: false, ReadOnly: false}
+	order1 := order.Order{Qunatity: 2, Cost: 100.00, CustomerID: 1}
 	order2 := order.Order{Qunatity: 3, Cost: 150.00, CustomerID: 1}
 	orders1 := []order.Order{order1, order2}
 	customerSejal := customer.Customer{Name: "sejal", Orders: orders1}
-	crud.AddCustomerAndOrders(db, customerSejal)
+	repository.AddCustomerAndOrders(uow, customerSejal)
 	order3 := order.Order{Qunatity: 4, Cost: 800.00, CustomerID: 2}
 	order4 := order.Order{Qunatity: 5, Cost: 950.00, CustomerID: 2}
 	orders2 := []order.Order{order3, order4}
 	customerRachel := customer.Customer{Name: "rachel", Orders: orders2}
-	crud.AddCustomerAndOrders(db, customerRachel)*/
+	repository.AddCustomerAndOrders(uow, customerRachel)*/
 
 	//Get Cutomer by ID
-	/*customerSejal := crud.GetCustomer(db, 1)
+	/*uow := repository.UnitOfWork{DB: db, Committed: false, ReadOnly: true}
+	customerSejal := repository.GetCustomer(uow, 14)
 	fmt.Println(customerSejal.Name)
 	fmt.Println(len(customerSejal.Orders))
 	fmt.Println(customerSejal.Orders[0])
 	fmt.Println(customerSejal.Orders[1])*/
 
 	//Get orders by cutomer ID
-	//fmt.Println(crud.GetOrdersWithCustomerID(db, 1))
+	/*uow := repository.UnitOfWork{DB: db, Committed: false, ReadOnly: true}
+	fmt.Println(repository.GetOrdersWithCustomerID(uow, 14))*/
 
 	//Update customer info
-	/*customerSejal := customer.Customer{Name: "sejal naik", Model: gorm.Model{ID: 1}}
-	crud.UpdateCustomerInfo(db, customerSejal)*/
+	/*uow := repository.UnitOfWork{DB: db, Committed: false, ReadOnly: false}
+	customerSejal := customer.Customer{Name: "sejal naik", Model: gorm.Model{ID: 14}}
+	repository.UpdateCustomerInfo(uow, customerSejal)*/
 
 	//Update order info through customer ID
-	/*customerSejal := crud.GetCustomer(db, 6)
+	/*uow := repository.UnitOfWork{DB: db, Committed: false, ReadOnly: true}
+	customerSejal := repository.GetCustomer(uow, 14)
+	uow = repository.UnitOfWork{DB: db, Committed: false, ReadOnly: false}
 	customerSejal.Orders[0].Qunatity = 100
 	customerSejal.Orders[0].Cost = 10000
-	crud.UpdateOrderInfoThroughCustomerID(db, customerSejal)*/
+	repository.UpdateOrderInfoThroughCustomerID(uow, customerSejal)*/
 
-	/*customerSejal := crud.GetCustomer(db, 6)
+	/*uow := repository.UnitOfWork{DB: db, Committed: false, ReadOnly: false}
+	customerSejal := repository.GetCustomer(uow, 14)
 	orderNew := order.Order{Qunatity: 50, Cost: 20000.00}
 	customerSejal.Orders = append(customerSejal.Orders, orderNew)
-	crud.UpdateOrderInfoThroughCustomerID(db, customerSejal)*/
-
-	/*customerSejal := crud.GetCustomer(db, 6)
-	customerSejal.Orders = customerSejal.Orders[0:2]
-	fmt.Println(len(customerSejal.Orders))
-	crud.UpdateOrderInfoThroughCustomerID(db, customerSejal)*/
+	repository.UpdateOrderInfoThroughCustomerID(uow, customerSejal)*/
 
 	//delete customer(soft)
-	/*customerRachel := crud.GetCustomer(db, 11)
-	crud.DeleteCustomer(db, customerRachel)*/
+	/*uow := repository.UnitOfWork{DB: db, Committed: false, ReadOnly: true}
+	customerRachel := repository.GetCustomer(uow, 14)
+	uow = repository.UnitOfWork{DB: db, Committed: false, ReadOnly: false}
+	repository.DeleteCustomer(uow, customerRachel)*/
 
 	//count rows scoped
-	/*fmt.Println("Scoped count of customer:", crud.ScopedCountRows(db, customer.Customer{}))
-	fmt.Println("Scoped count of order:", crud.ScopedCountRows(db, order.Order{}))*/
+	/*uow := repository.UnitOfWork{DB: db, Committed: false, ReadOnly: true}
+	fmt.Println("Scoped count of customer:", repository.ScopedCountRows(uow, customer.Customer{}))
+	fmt.Println("Scoped count of order:", repository.ScopedCountRows(uow, order.Order{}))*/
 
 	//count rows unscoped
-	/*fmt.Println("UnScoped count of customer:", crud.UnScopedCountRows(db, customer.Customer{}))
-	fmt.Println("UnScoped count of order:", crud.UnScopedCountRows(db, order.Order{}))*/
+	/*uow := repository.UnitOfWork{DB: db, Committed: false, ReadOnly: true}
+	fmt.Println("UnScoped count of customer:", repository.UnScopedCountRows(uow, customer.Customer{}))
+	fmt.Println("UnScoped count of order:", repository.UnScopedCountRows(uow, order.Order{}))*/
 
-	//delete customer(delete)
-	customerRachel := crud.GetCustomer(db, 13)
-	crud.HardDeleteCustomer(db, customerRachel)
+	//delete customer(hard)
+	/*uow := repository.UnitOfWork{DB: db, Committed: false, ReadOnly: true}
+	customerRachel := repository.GetCustomer(uow, 16)
+	uow = repository.UnitOfWork{DB: db, Committed: false, ReadOnly: false}
+	repository.HardDeleteCustomer(uow, customerRachel)*/
 }
