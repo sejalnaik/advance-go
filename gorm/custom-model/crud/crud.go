@@ -2,7 +2,6 @@ package crud
 
 import (
 	"github.com/jinzhu/gorm"
-	uuid "github.com/satori/go.uuid"
 	"github.com/sejalnaik/advance-go/gorm/custom-model/country"
 	"github.com/sejalnaik/advance-go/gorm/custom-model/state"
 )
@@ -26,14 +25,25 @@ func AddCountry(db *gorm.DB, country country.Country) {
 	db.Debug().Create(&country)
 }
 
-func GetCountry(db *gorm.DB, id uuid.UUID) country.Country {
+func GetCountry(db *gorm.DB, id string) country.Country {
 	tempCountry := country.Country{}
-	db.Debug().Preload("States").Where("id = ?", id.String()).First(&tempCountry)
+	db.Debug().Preload("States").Where("id = ?", id).First(&tempCountry)
 	return tempCountry
 }
 
-func GetFirstCountry(db *gorm.DB) country.Country {
-	tempCountry := country.Country{}
-	db.Debug().Preload("States").First(&tempCountry)
-	return tempCountry
+func UpdateCountry(db *gorm.DB, country country.Country) {
+	db.Debug().Model(&country).Update(&country)
+}
+
+func DeleteCountry(db *gorm.DB, country country.Country) {
+
+	if len(country.States) != 0 {
+		for _, state := range country.States {
+			db.Debug().Model(&state).Delete(&state)
+		}
+	}
+	db.Debug().Delete(&country)
+}
+func HardDeleteCountry(db *gorm.DB, country country.Country) {
+	db.Debug().Unscoped().Delete(&country)
 }
