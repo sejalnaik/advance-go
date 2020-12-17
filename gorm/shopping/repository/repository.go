@@ -1,18 +1,27 @@
 package repository
 
-import (
-	"github.com/sejalnaik/advance-go/gorm/shopping/customer"
-	"github.com/sejalnaik/advance-go/gorm/shopping/order"
-)
+import "github.com/sejalnaik/advance-go/gorm/shopping/model"
 
 type gormRepository struct {
 }
 
-func NewRepository() *gormRepository {
+func NewRepository() Repository {
 	return &gormRepository{}
 }
 
-func (*gormRepository) AddCustomerAndOrders(uow *UnitOfWork, customer customer.Customer) error {
+type Repository interface {
+	Add(uow *UnitOfWork, entity interface{}) error
+	Get(uow *UnitOfWork, out interface{}) error
+	GetOrdersWithCustomerID(uow *UnitOfWork, out interface{}) ([]model.Order, error)
+	Update(uow *UnitOfWork, entity interface{}) error
+	ScopedCountRows(uow *UnitOfWork, entity interface{}) (int, error)
+	UnScopedCountRows(uow *UnitOfWork, entity interface{}) (int, error)
+	DeleteCustomer(uow *UnitOfWork, customer model.Customer) error
+	Delete(uow *UnitOfWork, entity interface{}) error
+	HardDelete(uow *UnitOfWork, entity interface{}) error
+}
+
+func (*gormRepository) Add(uow *UnitOfWork, entity interface{}) error {
 	db := uow.DB
 
 	defer func() {
@@ -25,36 +34,36 @@ func (*gormRepository) AddCustomerAndOrders(uow *UnitOfWork, customer customer.C
 		return err
 	}
 
-	if err := db.Debug().Create(&customer).Error; err != nil {
+	if err := db.Debug().Create(entity).Error; err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (*gormRepository) GetCustomer(uow *UnitOfWork, id int) (customer.Customer, error) {
-	db := uow.DB
-	tempCustomer := customer.Customer{}
+func (*gormRepository) Get(uow *UnitOfWork, out interface{}) error {
 
-	if err := db.Debug().Preload("Orders").First(&tempCustomer, id).Error; err != nil {
-		return tempCustomer, err
+	db := uow.DB
+
+	if err := db.Debug().Preload("Orders").First(out).Error; err != nil {
+		return err
 	}
 
-	return tempCustomer, nil
+	return nil
 }
 
-func (*gormRepository) GetOrdersWithCustomerID(uow *UnitOfWork, id int) ([]order.Order, error) {
+func (*gormRepository) GetOrdersWithCustomerID(uow *UnitOfWork, out interface{}) ([]model.Order, error) {
 	db := uow.DB
-	tempOrders := []order.Order{}
+	tempOrders := []model.Order{}
 
-	if err := db.Debug().First(&customer.Customer{}, id).Related(&tempOrders).Error; err != nil {
+	if err := db.Debug().First(out).Related(&tempOrders).Error; err != nil {
 		return tempOrders, err
 	}
 
 	return tempOrders, nil
 }
 
-func (*gormRepository) UpdateCustomerInfo(uow *UnitOfWork, customerNew customer.Customer) error {
+func (*gormRepository) Update(uow *UnitOfWork, entity interface{}) error {
 
 	db := uow.DB
 	defer func() {
@@ -67,58 +76,38 @@ func (*gormRepository) UpdateCustomerInfo(uow *UnitOfWork, customerNew customer.
 		return err
 	}
 
-	if err := db.Debug().Model(&customerNew).Update(map[string]interface{}{"name": customerNew.Name}).Error; err != nil {
+	if err := db.Debug().Model(entity).Update(entity).Error; err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (*gormRepository) UpdateOrderInfoThroughCustomerID(uow *UnitOfWork, customer customer.Customer) error {
-
-	db := uow.DB
-	defer func() {
-		if r := recover(); r != nil {
-			db.Rollback()
-		}
-	}()
-
-	if err := db.Error; err != nil {
-		return err
-	}
-
-	if err := db.Debug().Model(&customer).Update(&customer).Error; err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (*gormRepository) ScopedCountRows(uow *UnitOfWork, table interface{}) (int, error) {
+func (*gormRepository) ScopedCountRows(uow *UnitOfWork, entity interface{}) (int, error) {
 
 	db := uow.DB
 	var count int
 
-	if err := db.Debug().Model(table).Count(&count).Error; err != nil {
+	if err := db.Debug().Model(entity).Count(&count).Error; err != nil {
 		return count, err
 	}
 
 	return count, nil
 }
 
-func (*gormRepository) UnScopedCountRows(uow *UnitOfWork, table interface{}) (int, error) {
+func (*gormRepository) UnScopedCountRows(uow *UnitOfWork, entity interface{}) (int, error) {
 
 	db := uow.DB
 	var count int
 
-	if err := db.Debug().Model(table).Unscoped().Count(&count).Error; err != nil {
+	if err := db.Debug().Model(entity).Unscoped().Count(&count).Error; err != nil {
 		return count, err
 	}
 
 	return count, nil
 }
 
-func (*gormRepository) DeleteCustomer(uow *UnitOfWork, customer customer.Customer) error {
+func (*gormRepository) DeleteCustomer(uow *UnitOfWork, customer model.Customer) error {
 
 	db := uow.DB
 	defer func() {
@@ -146,7 +135,7 @@ func (*gormRepository) DeleteCustomer(uow *UnitOfWork, customer customer.Custome
 	return nil
 }
 
-func (*gormRepository) HardDeleteCustomer(uow *UnitOfWork, customer customer.Customer) error {
+func (*gormRepository) Delete(uow *UnitOfWork, entity interface{}) error {
 
 	db := uow.DB
 	defer func() {
@@ -158,7 +147,27 @@ func (*gormRepository) HardDeleteCustomer(uow *UnitOfWork, customer customer.Cus
 	if err := db.Error; err != nil {
 		return err
 	}
-	if err := db.Debug().Unscoped().Delete(&customer).Error; err != nil {
+
+	if err := db.Debug().Delete(entity).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (*gormRepository) HardDelete(uow *UnitOfWork, entity interface{}) error {
+
+	db := uow.DB
+	defer func() {
+		if r := recover(); r != nil {
+			db.Rollback()
+		}
+	}()
+
+	if err := db.Error; err != nil {
+		return err
+	}
+	if err := db.Debug().Unscoped().Delete(entity).Error; err != nil {
 		return err
 	}
 
