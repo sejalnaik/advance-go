@@ -56,16 +56,6 @@ func main() {
 		fmt.Println(tempCustomer.Orders[1])
 	}*/
 
-	//Get orders by cutomer ID**************************************************************************
-	/*uow := repository.NewUnitOfWork(db, true)
-	repo := repository.NewRepository()
-	tempCustomer := model.Customer{Model: gorm.Model{ID: 21}}
-	if tempOrders, err := repo.GetOrdersWithCustomerID(uow, &tempCustomer); err != nil {
-		fmt.Println(err)
-	} else {
-		fmt.Println(tempOrders)
-	}*/
-
 	//Update customer info******************************************************************************
 	/*uow := repository.NewUnitOfWork(db, false)
 	repo := repository.NewRepository()
@@ -112,12 +102,22 @@ func main() {
 	//delete customer(soft)*****************************************************************************
 	/*uow := repository.NewUnitOfWork(db, false)
 	repo := repository.NewRepository()
-	tempCustomer := model.Customer{Model: gorm.Model{ID: 22}}
+	tempCustomer := model.Customer{Model: gorm.Model{ID: 23}}
 	if err := repo.Get(uow, &tempCustomer); err != nil {
 		fmt.Println(err)
 	} else {
+		if len(tempCustomer.Orders) != 0 {
+			for _, order := range tempCustomer.Orders {
+				uow = repository.NewUnitOfWork(db, false)
+				if err := repo.Delete(uow, &order); err != nil {
+					uow.Complete()
+				} else {
+					uow.Commit()
+				}
+			}
+		}
 		uow = repository.NewUnitOfWork(db, false)
-		if err := repo.DeleteCustomer(uow, tempCustomer); err != nil {
+		if err := repo.Delete(uow, &tempCustomer); err != nil {
 			uow.Complete()
 		} else {
 			uow.Commit()
