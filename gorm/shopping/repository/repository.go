@@ -5,147 +5,162 @@ import (
 	"github.com/sejalnaik/advance-go/gorm/shopping/order"
 )
 
-func AddCustomerAndOrders(uow UnitOfWork, customer customer.Customer) error {
+type gormRepository struct {
+}
 
-	transaction := uow.DB.Begin()
+func NewRepository() *gormRepository {
+	return &gormRepository{}
+}
+
+func (*gormRepository) AddCustomerAndOrders(uow *UnitOfWork, customer customer.Customer) error {
+	db := uow.DB
+
 	defer func() {
 		if r := recover(); r != nil {
-			transaction.Rollback()
+			db.Rollback()
 		}
 	}()
 
-	if err := transaction.Error; err != nil {
+	if err := db.Error; err != nil {
 		return err
 	}
 
-	if err := transaction.Debug().Create(&customer).Error; err != nil {
-		transaction.Rollback()
+	if err := db.Debug().Create(&customer).Error; err != nil {
 		return err
 	}
-	uow.Committed = true
 
-	return transaction.Commit().Error
+	return nil
 }
 
-func GetCustomer(uow UnitOfWork, id int) customer.Customer {
+func (*gormRepository) GetCustomer(uow *UnitOfWork, id int) (customer.Customer, error) {
+	db := uow.DB
 	tempCustomer := customer.Customer{}
-	uow.DB.Debug().Preload("Orders").First(&tempCustomer, id)
-	uow.Committed = true
-	return tempCustomer
+
+	if err := db.Debug().Preload("Orders").First(&tempCustomer, id).Error; err != nil {
+		return tempCustomer, err
+	}
+
+	return tempCustomer, nil
 }
 
-func GetOrdersWithCustomerID(uow UnitOfWork, id int) []order.Order {
+func (*gormRepository) GetOrdersWithCustomerID(uow *UnitOfWork, id int) ([]order.Order, error) {
+	db := uow.DB
 	tempOrders := []order.Order{}
-	uow.DB.Debug().First(&customer.Customer{}, id).Related(&tempOrders)
-	return tempOrders
+
+	if err := db.Debug().First(&customer.Customer{}, id).Related(&tempOrders).Error; err != nil {
+		return tempOrders, err
+	}
+
+	return tempOrders, nil
 }
 
-func UpdateCustomerInfo(uow UnitOfWork, customerNew customer.Customer) error {
+func (*gormRepository) UpdateCustomerInfo(uow *UnitOfWork, customerNew customer.Customer) error {
 
-	transaction := uow.DB.Begin()
+	db := uow.DB
 	defer func() {
 		if r := recover(); r != nil {
-			transaction.Rollback()
+			db.Rollback()
 		}
 	}()
 
-	if err := transaction.Error; err != nil {
+	if err := db.Error; err != nil {
 		return err
 	}
 
-	if err := transaction.Debug().Model(&customerNew).Update(map[string]interface{}{"name": customerNew.Name}).Error; err != nil {
-		transaction.Rollback()
+	if err := db.Debug().Model(&customerNew).Update(map[string]interface{}{"name": customerNew.Name}).Error; err != nil {
 		return err
 	}
-	uow.Committed = true
 
-	return transaction.Commit().Error
+	return nil
 }
 
-func UpdateOrderInfoThroughCustomerID(uow UnitOfWork, customer customer.Customer) error {
+func (*gormRepository) UpdateOrderInfoThroughCustomerID(uow *UnitOfWork, customer customer.Customer) error {
 
-	transaction := uow.DB.Begin()
+	db := uow.DB
 	defer func() {
 		if r := recover(); r != nil {
-			transaction.Rollback()
+			db.Rollback()
 		}
 	}()
 
-	if err := transaction.Error; err != nil {
+	if err := db.Error; err != nil {
 		return err
 	}
 
-	if err := transaction.Debug().Model(&customer).Update(&customer).Error; err != nil {
-		transaction.Rollback()
+	if err := db.Debug().Model(&customer).Update(&customer).Error; err != nil {
 		return err
 	}
-	uow.Committed = true
 
-	return transaction.Commit().Error
+	return nil
 }
 
-func ScopedCountRows(uow UnitOfWork, table interface{}) int {
+func (*gormRepository) ScopedCountRows(uow *UnitOfWork, table interface{}) (int, error) {
+
+	db := uow.DB
 	var count int
-	uow.DB.Debug().Model(table).Count(&count)
-	return count
+
+	if err := db.Debug().Model(table).Count(&count).Error; err != nil {
+		return count, err
+	}
+
+	return count, nil
 }
 
-func UnScopedCountRows(uow UnitOfWork, table interface{}) int {
+func (*gormRepository) UnScopedCountRows(uow *UnitOfWork, table interface{}) (int, error) {
+
+	db := uow.DB
 	var count int
-	uow.DB.Debug().Model(table).Unscoped().Count(&count)
-	return count
+
+	if err := db.Debug().Model(table).Unscoped().Count(&count).Error; err != nil {
+		return count, err
+	}
+
+	return count, nil
 }
 
-func DeleteCustomer(uow UnitOfWork, customer customer.Customer) error {
+func (*gormRepository) DeleteCustomer(uow *UnitOfWork, customer customer.Customer) error {
 
-	transaction := uow.DB.Begin()
+	db := uow.DB
 	defer func() {
 		if r := recover(); r != nil {
-			transaction.Rollback()
+			db.Rollback()
 		}
 	}()
 
-	if err := transaction.Error; err != nil {
+	if err := db.Error; err != nil {
 		return err
 	}
 
 	if len(customer.Orders) != 0 {
 		for _, order := range customer.Orders {
-			if err := transaction.Debug().Model(&order).Delete(&order).Error; err != nil {
-				transaction.Rollback()
+			if err := db.Debug().Model(&order).Delete(&order).Error; err != nil {
 				return err
 			}
 		}
 	}
 
-	if err := transaction.Debug().Delete(&customer).Error; err != nil {
-		transaction.Rollback()
+	if err := db.Debug().Delete(&customer).Error; err != nil {
 		return err
 	}
 
-	uow.Committed = true
-
-	return transaction.Commit().Error
+	return nil
 }
 
-func HardDeleteCustomer(uow UnitOfWork, customer customer.Customer) error {
+func (*gormRepository) HardDeleteCustomer(uow *UnitOfWork, customer customer.Customer) error {
 
-	transaction := uow.DB.Begin()
+	db := uow.DB
 	defer func() {
 		if r := recover(); r != nil {
-			transaction.Rollback()
+			db.Rollback()
 		}
 	}()
 
-	if err := transaction.Error; err != nil {
+	if err := db.Error; err != nil {
+		return err
+	}
+	if err := db.Debug().Unscoped().Delete(&customer).Error; err != nil {
 		return err
 	}
 
-	if err := transaction.Debug().Unscoped().Delete(&customer).Error; err != nil {
-		transaction.Rollback()
-		return err
-	}
-	uow.Committed = true
-
-	return transaction.Commit().Error
+	return nil
 }
